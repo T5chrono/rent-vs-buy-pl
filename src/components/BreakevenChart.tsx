@@ -44,8 +44,8 @@ export function BreakevenChart({ result }: Props) {
       <p className="text-xs text-gray-500">
         Liczba symulacji (z 1 000), w których kupno zaczyna przewyższać najem w danym roku.
       </p>
-      <div className="h-56 sm:h-64">
-        <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: '100%', height: 256 }}>
+        <ResponsiveContainer width="100%" height={256}>
           <BarChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="year" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
@@ -73,7 +73,7 @@ export function BreakevenChart({ result }: Props) {
       </div>
       {neverBreaksEven > 0 && (
         <p className="text-xs text-red-600 font-medium">
-          W {neverBreaksEven} z 1 000 symulacji kupno nigdy nie okazuje się korzystniejsze w horyzoncie 30 lat.
+          W {neverBreaksEven} z 1 000 symulacji kupno nigdy nie okazuje się korzystniejsze w przyjętym horyzoncie.
         </p>
       )}
     </div>

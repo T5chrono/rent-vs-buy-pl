@@ -8,21 +8,34 @@ export interface CityData {
 export interface SimParams {
   // Property
   apartmentSizeSqm: number;
-  downPaymentPct: number;       // 0–1
-  loanTermYears: number;
+  homePricePln: number;
+  monthlyRentPln: number;
 
-  // Rates (means; simulation will sample around these)
-  mortgageRatePct: number;      // nominal annual %
+  // Your finances
+  startingCapitalPln: number;    // total savings (K₀)
+  monthlyBudgetPln: number;      // equal monthly budget for housing + investing
+
+  // Purchase structure
+  downPaymentPct: number;        // 0–1
+  transactionCostPct: number;    // entry costs (PCC, notary, agent) as fraction
+  renovationCostPln: number;     // one-time fit-out cost (stan deweloperski → gotowy)
+  loanTermYears: number;
+  mortgageRatePct: number;       // mean nominal annual %
+  rateResetPeriodYears: number;  // fixed-rate window before reset (default 5)
+  overpaymentPct: number;        // 0–1, fraction of monthly surplus directed to overpaying the mortgage
+
+  // Owner running costs (PLN / m² / month, inflation-adjusted)
+  adminFeesPerSqm: number;      // czynsz administracyjny + fundusz remontowy
+  maintenancePerSqm: number;    // own maintenance / renovation reserve
+
+  // Market assumptions (annual %, means for year-by-year sampling)
   propertyAppreciationPct: number;
-  propertyTaxAndFeesPct: number; // annual % of home value
-  maintenancePct: number;        // annual % of home value
   rentGrowthPct: number;
   investmentReturnPct: number;
   inflationPct: number;
 
-  // Seeded from CityData (overrideable)
-  homePricePln: number;
-  monthlyRentPln: number;
+  // Simulation
+  horizonYears: number;          // default 25
 }
 
 export interface YearlyPoint {

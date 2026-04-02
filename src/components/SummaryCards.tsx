@@ -3,6 +3,7 @@ import { formatPLNCompact, formatYear } from '../utils/formatters';
 
 interface Props {
   result: SimulationResult;
+  horizonYears: number;
 }
 
 interface CardProps {
@@ -28,7 +29,7 @@ function Card({ title, value, sub, color }: CardProps) {
   );
 }
 
-export function SummaryCards({ result }: Props) {
+export function SummaryCards({ result, horizonYears }: Props) {
   const { medianBreakevenYear, probBuyWins, buyFinalP50, rentFinalP50 } = result;
   const buyBetter = buyFinalP50 > rentFinalP50;
 
@@ -37,25 +38,27 @@ export function SummaryCards({ result }: Props) {
       <Card
         title="Mediana progu opłacalności"
         value={formatYear(medianBreakevenYear)}
-        sub={medianBreakevenYear ? `Kupno zaczyna wygrywać po ${medianBreakevenYear} latach` : 'Kupno nie wychodzi korzystniej w 30 latach'}
+        sub={medianBreakevenYear
+          ? `Kupno zaczyna wygrywać po ${medianBreakevenYear} l.`
+          : `Kupno nie wygrywa w ${horizonYears} lat`}
         color="blue"
       />
       <Card
         title="Kupno wygrywa w"
         value={`${Math.round(probBuyWins * 100)}%`}
-        sub="symulacji Monte Carlo (30 lat)"
+        sub={`symulacji MC (${horizonYears} lat)`}
         color={probBuyWins >= 0.5 ? 'green' : 'amber'}
       />
       <Card
-        title="Majątek po 30 latach — kupno (p50)"
+        title={`Kupno (p50) po ${horizonYears} l.`}
         value={formatPLNCompact(buyFinalP50)}
-        sub="Mediana wartości netto"
+        sub="Nieruchomość + portfel − kredyt (po Belce)"
         color={buyBetter ? 'green' : 'amber'}
       />
       <Card
-        title="Majątek po 30 latach — najem (p50)"
+        title={`Najem (p50) po ${horizonYears} l.`}
         value={formatPLNCompact(rentFinalP50)}
-        sub="Mediana portfela + zainwestowane oszczędności"
+        sub="Portfel inwestycyjny (po Belce)"
         color={!buyBetter ? 'green' : 'amber'}
       />
     </div>

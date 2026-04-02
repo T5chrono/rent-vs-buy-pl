@@ -15,6 +15,7 @@ import { formatPLNCompact, formatPLN } from '../utils/formatters';
 
 interface Props {
   result: SimulationResult;
+  horizonYears: number;
 }
 
 function yTickFormatter(value: number) {
@@ -43,19 +44,19 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function WealthChart({ result }: Props) {
+export function WealthChart({ result, horizonYears }: Props) {
   const { yearlyData, medianBreakevenYear } = result;
 
   return (
     <div className="space-y-2">
       <h2 className="text-base font-semibold text-gray-800">
-        Wartość netto w czasie — 30-letnia symulacja
+        Wartość netto w czasie — symulacja {horizonYears} lat
       </h2>
       <p className="text-xs text-gray-500">
-        Obszary — przedziały p5–p95 i p25–p75. Linie — mediana (p50). 1 000 iteracji.
+        Obszary — przedziały p5–p95 i p25–p75. Linie — mediana (p50). 1 000 iteracji. Zyski po podatku Belki (19%).
       </p>
-      <div className="h-72 sm:h-96">
-        <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: '100%', height: 384 }}>
+        <ResponsiveContainer width="100%" height={384}>
           <ComposedChart data={yearlyData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis

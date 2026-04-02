@@ -11,20 +11,49 @@ import { DataSourceNote } from './components/DataSourceNote';
 const DEFAULT_CITY = cityPrices['warszawa'];
 const DEFAULT_SIZE = 55;
 
+// Rough annuity helper for estimating default budget
+function roughMonthly(principal: number, rate: number, years: number): number {
+  const r = rate / 12;
+  if (r <= 0) return principal / (years * 12);
+  const n = years * 12;
+  return (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+}
+
 function defaultParams(city: CityData, sizeSqm: number): SimParams {
+  const homePrice = city.pricePerSqm * sizeSqm;
+  const monthlyRent = city.rentPerSqm * sizeSqm;
+  const downPct = 0.2;
+  const txCostPct = 0.05;
+  const loanTerm = 25;
+  const rate = 0.07;
+  const adminPerSqm = 15;
+  const maintPerSqm = 3;
+
+  const loan = homePrice * (1 - downPct);
+  const estMortgage = roughMonthly(loan, rate, loanTerm);
+  const estOwnerCost = estMortgage + (adminPerSqm + maintPerSqm) * sizeSqm;
+  const budget = Math.ceil(estOwnerCost / 500) * 500; // round up to nearest 500
+
   return {
     apartmentSizeSqm: sizeSqm,
-    homePricePln: city.pricePerSqm * sizeSqm,
-    monthlyRentPln: city.rentPerSqm * sizeSqm,
-    downPaymentPct: 0.2,
-    loanTermYears: 30,
-    mortgageRatePct: 6.5,
+    homePricePln: homePrice,
+    monthlyRentPln: monthlyRent,
+    startingCapitalPln: 250000,
+    monthlyBudgetPln: budget,
+    downPaymentPct: downPct,
+    transactionCostPct: txCostPct,
+    renovationCostPln: 0,
+    loanTermYears: loanTerm,
+    mortgageRatePct: 7.0,
+    rateResetPeriodYears: 5,
+    overpaymentPct: 0.5,
+    adminFeesPerSqm: adminPerSqm,
+    maintenancePerSqm: maintPerSqm,
     propertyAppreciationPct: 4.0,
-    propertyTaxAndFeesPct: 0.5,
-    maintenancePct: 1.0,
     rentGrowthPct: 3.5,
-    investmentReturnPct: 6.0,
+    investmentReturnPct: 7.0,
     inflationPct: 3.5,
+    horizonYears: 25,
   };
 }
 
@@ -37,7 +66,6 @@ export default function App() {
   const workerRef = useRef<Worker | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Initialise worker once
   useEffect(() => {
     workerRef.current = new Worker(
       new URL('./workers/simulation.worker.ts', import.meta.url),
@@ -47,9 +75,7 @@ export default function App() {
       setResult(e.data.result);
       setLoading(false);
     };
-    return () => {
-      workerRef.current?.terminate();
-    };
+    return () => { workerRef.current?.terminate(); };
   }, []);
 
   const runSimulation = useCallback((p: SimParams) => {
@@ -59,31 +85,40 @@ export default function App() {
     workerRef.current.postMessage(req);
   }, []);
 
-  // Run on mount with defaults
   useEffect(() => {
     runSimulation(params);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function scheduleRun(p: SimParams) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSimulation(p), 350);
+  }
+
   function handleParamsChange(updated: SimParams) {
     setParams(updated);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSimulation(updated), 350);
+    scheduleRun(updated);
   }
 
   function handleCityResolved(data: CityData) {
     setCity(data);
+    const homePrice = data.pricePerSqm * params.apartmentSizeSqm;
+    const monthlyRent = data.rentPerSqm * params.apartmentSizeSqm;
+    const loan = homePrice * (1 - params.downPaymentPct);
+    const estMortgage = roughMonthly(loan, params.mortgageRatePct / 100, params.loanTermYears);
+    const estOwnerCost = estMortgage + (params.adminFeesPerSqm + params.maintenancePerSqm) * params.apartmentSizeSqm;
+    const budget = Math.ceil(estOwnerCost / 500) * 500;
+
     const newParams: SimParams = {
       ...params,
-      homePricePln: data.pricePerSqm * params.apartmentSizeSqm,
-      monthlyRentPln: data.rentPerSqm * params.apartmentSizeSqm,
+      homePricePln: homePrice,
+      monthlyRentPln: monthlyRent,
+      monthlyBudgetPln: budget,
     };
     setParams(newParams);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSimulation(newParams), 350);
+    scheduleRun(newParams);
   }
 
-  // Sync price/rent when apartment size changes
   function handleParamsChangeWithSizeSync(updated: SimParams) {
     if (updated.apartmentSizeSqm !== params.apartmentSizeSqm) {
       updated = {
@@ -97,7 +132,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
@@ -109,7 +143,7 @@ export default function App() {
                 Najem czy Kupno?
               </h1>
               <p className="text-sm text-gray-500">
-                30-letnia symulacja Monte Carlo dla polskiego rynku nieruchomości
+                Symulacja Monte Carlo &middot; {params.horizonYears} lat &middot; polski rynek nieruchomości
               </p>
             </div>
           </div>
@@ -119,9 +153,8 @@ export default function App() {
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
-          {/* Left column — inputs */}
           <aside className="w-full lg:w-80 xl:w-96 shrink-0">
-            <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 p-5 space-y-6 lg:sticky lg:top-6">
+            <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 p-5 space-y-6 lg:sticky lg:top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
               <ZipInput onCityResolved={handleCityResolved} />
               <hr className="border-gray-100" />
               <ParameterPanel
@@ -131,9 +164,7 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Right column — results */}
           <div className="flex-1 min-w-0 space-y-5">
-            {/* Loading indicator */}
             {loading && (
               <div className="flex items-center gap-2 text-sm text-blue-600 font-medium">
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -146,24 +177,26 @@ export default function App() {
 
             {result && (
               <>
-                <SummaryCards result={result} />
+                <SummaryCards result={result} horizonYears={params.horizonYears} />
 
                 <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
-                  <WealthChart result={result} />
+                  <WealthChart result={result} horizonYears={params.horizonYears} />
                 </div>
 
                 <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 p-5">
                   <BreakevenChart result={result} />
                 </div>
 
-                {/* Methodology note */}
                 <div className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 p-4 text-sm text-amber-800 space-y-1">
-                  <p className="font-semibold">Model obliczeniowy</p>
+                  <p className="font-semibold">Model obliczeniowy v2</p>
                   <ul className="list-disc list-inside space-y-0.5 text-xs text-amber-700">
-                    <li>Scenariusz kupna: kredyt annuitetowy + wzrost wartości nieruchomości − podatki i utrzymanie</li>
-                    <li>Scenariusz najmu: wkład własny zainwestowany od dnia 0 + nadwyżka (różnica rat) inwestowana co rok</li>
-                    <li>Każda iteracja losuje oprocentowanie, wzrost wartości, czynszów i stopy zwrotu z rozkładu normalnego</li>
-                    <li>Próg opłacalności = rok, w którym wartość netto kupującego przewyższa wartość portfela najemcy</li>
+                    <li>Równy budżet miesięczny — nadwyżka kupującego dzielona: nadpłata kredytu + inwestycja w ETF</li>
+                    <li>Najemca inwestuje cały kapitał początkowy od dnia 0 + comiesięczną nadwyżkę</li>
+                    <li>Podatek Belki (19%) na zyskach portfela obu stron; nieruchomość zwolniona po 5 latach</li>
+                    <li>Koszty wejścia: PCC/notariusz/pośrednik + opcjonalne wykończenie</li>
+                    <li>Stopa kredytu resetowana co {params.rateResetPeriodYears} lat (realia polskiego rynku)</li>
+                    <li>Losowanie zmiennych co rok (σ: ETF ≈ 15%, nieruchomości ≈ 6%, czynsze ≈ 3%)</li>
+                    <li>NW = Aktywa − Pasywa (bez podwójnego karania kosztami bieżącymi)</li>
                   </ul>
                 </div>
 
