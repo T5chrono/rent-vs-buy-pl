@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ComposedChart,
   Area,
@@ -6,12 +7,13 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 import type { SimulationResult } from '../types';
 import { formatPLNAxis, formatPLNPrecise } from '../utils/formatters';
+
+type ViewMode = 'both' | 'buy' | 'rent';
 
 interface Props {
   result: SimulationResult;
@@ -20,6 +22,28 @@ interface Props {
 
 function yTickFormatter(value: number) {
   return formatPLNAxis(value);
+}
+
+function LegendRow({ name, lineColor, midColor, lightColor }: {
+  name?: string; lineColor: string; midColor: string; lightColor: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 flex-wrap text-xs text-gray-600">
+      {name && <span className="font-semibold w-12 shrink-0" style={{ color: lineColor }}>{name}</span>}
+      <span className="flex items-center gap-1.5">
+        <span style={{ display: 'inline-block', width: 22, height: 3, background: lineColor, borderRadius: 2 }} />
+        Mediana (p50)
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span style={{ display: 'inline-block', width: 14, height: 12, background: midColor, borderRadius: 2 }} />
+        p25–p75 <span className="text-gray-400 ml-0.5">— połowa symulacji w tym przedziale</span>
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span style={{ display: 'inline-block', width: 14, height: 12, background: lightColor, borderRadius: 2, opacity: 0.55 }} />
+        p5–p95 <span className="text-gray-400 ml-0.5">— 90% symulacji w tym przedziale</span>
+      </span>
+    </div>
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,15 +70,46 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export function WealthChart({ result, horizonYears }: Props) {
   const { yearlyData, medianBreakevenYear } = result;
+  const [view, setView] = useState<ViewMode>('both');
+
+  const showBuy = view === 'both' || view === 'buy';
+  const showRent = view === 'both' || view === 'rent';
+
+  const btnBase = 'px-3 py-1 rounded-full text-xs font-medium transition-colors';
+  const btnActive = (active: boolean, color: string) =>
+    active ? `${color} text-white` : 'bg-gray-100 text-gray-500 hover:bg-gray-200';
 
   return (
     <div className="space-y-2">
-      <h2 className="text-base font-semibold text-gray-800">
-        Wartość netto w czasie — symulacja {horizonYears} lat
-      </h2>
-      <p className="text-xs text-gray-500">
-        Obszary — przedziały p5–p95 i p25–p75. Linie — mediana (p50). 1 000 iteracji. Zyski po podatku Belki (19%).
-      </p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-base font-semibold text-gray-800">
+          Wartość netto w czasie — symulacja {horizonYears} lat
+        </h2>
+        <div className="flex gap-1.5">
+          <button className={`${btnBase} ${btnActive(view === 'both', 'bg-gray-500')}`} onClick={() => setView('both')}>Oba</button>
+          <button className={`${btnBase} ${btnActive(view === 'buy', 'bg-blue-600')}`} onClick={() => setView('buy')}>Kupno</button>
+          <button className={`${btnBase} ${btnActive(view === 'rent', 'bg-emerald-600')}`} onClick={() => setView('rent')}>Najem</button>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1 pt-0.5">
+        {showBuy && (
+          <LegendRow
+            name={view === 'both' ? 'Kupno' : undefined}
+            lineColor="#2563eb"
+            midColor="#93c5fd"
+            lightColor="#bfdbfe"
+          />
+        )}
+        {showRent && (
+          <LegendRow
+            name={view === 'both' ? 'Najem' : undefined}
+            lineColor="#059669"
+            midColor="#6ee7b7"
+            lightColor="#a7f3d0"
+          />
+        )}
+        <p className="text-xs text-gray-400 mt-0.5">1 000 iteracji Monte Carlo · zyski po podatku Belki (19%)</p>
+      </div>
       <div style={{ width: '100%', height: 384 }}>
         <ResponsiveContainer width="100%" height={384}>
           <ComposedChart data={yearlyData} margin={{ top: 28, right: 16, left: 8, bottom: 0 }}>
@@ -70,124 +125,22 @@ export function WealthChart({ result, horizonYears }: Props) {
               width={72}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              formatter={(value) => {
-                const labels: Record<string, string> = {
-                  buyBand95: 'Kupno p5–p95',
-                  buyBand75: 'Kupno p25–p75',
-                  buyP50: 'Kupno mediana',
-                  rentBand95: 'Najem p5–p95',
-                  rentBand75: 'Najem p25–p75',
-                  rentP50: 'Najem mediana',
-                };
-                return labels[value] ?? value;
-              }}
-              wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
-            />
 
             {/* BUY bands */}
-            <Area
-              type="monotone"
-              dataKey="buyP95"
-              stroke="none"
-              fill="#bfdbfe"
-              fillOpacity={0.4}
-              name="buyBand95"
-              legendType="none"
-              isAnimationActive={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="buyP5"
-              stroke="none"
-              fill="#ffffff"
-              fillOpacity={1}
-              name="buyBand95_bottom"
-              legendType="none"
-              isAnimationActive={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="buyP75"
-              stroke="none"
-              fill="#93c5fd"
-              fillOpacity={0.5}
-              name="buyBand75"
-              legendType="none"
-              isAnimationActive={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="buyP25"
-              stroke="none"
-              fill="#ffffff"
-              fillOpacity={1}
-              name="buyBand75_bottom"
-              legendType="none"
-              isAnimationActive={false}
-            />
+            {showBuy && <Area type="monotone" dataKey="buyP95" stroke="none" fill="#bfdbfe" fillOpacity={0.4} name="buyBand95" legendType="none" isAnimationActive={false} />}
+            {showBuy && <Area type="monotone" dataKey="buyP5" stroke="none" fill="#ffffff" fillOpacity={1} name="buyBand95_bottom" legendType="none" isAnimationActive={false} />}
+            {showBuy && <Area type="monotone" dataKey="buyP75" stroke="none" fill="#93c5fd" fillOpacity={0.5} name="buyBand75" legendType="none" isAnimationActive={false} />}
+            {showBuy && <Area type="monotone" dataKey="buyP25" stroke="none" fill="#ffffff" fillOpacity={1} name="buyBand75_bottom" legendType="none" isAnimationActive={false} />}
 
             {/* RENT bands */}
-            <Area
-              type="monotone"
-              dataKey="rentP95"
-              stroke="none"
-              fill="#a7f3d0"
-              fillOpacity={0.4}
-              name="rentBand95"
-              legendType="none"
-              isAnimationActive={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="rentP5"
-              stroke="none"
-              fill="#ffffff"
-              fillOpacity={1}
-              name="rentBand95_bottom"
-              legendType="none"
-              isAnimationActive={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="rentP75"
-              stroke="none"
-              fill="#6ee7b7"
-              fillOpacity={0.5}
-              name="rentBand75"
-              legendType="none"
-              isAnimationActive={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="rentP25"
-              stroke="none"
-              fill="#ffffff"
-              fillOpacity={1}
-              name="rentBand75_bottom"
-              legendType="none"
-              isAnimationActive={false}
-            />
+            {showRent && <Area type="monotone" dataKey="rentP95" stroke="none" fill="#a7f3d0" fillOpacity={0.4} name="rentBand95" legendType="none" isAnimationActive={false} />}
+            {showRent && <Area type="monotone" dataKey="rentP5" stroke="none" fill="#ffffff" fillOpacity={1} name="rentBand95_bottom" legendType="none" isAnimationActive={false} />}
+            {showRent && <Area type="monotone" dataKey="rentP75" stroke="none" fill="#6ee7b7" fillOpacity={0.5} name="rentBand75" legendType="none" isAnimationActive={false} />}
+            {showRent && <Area type="monotone" dataKey="rentP25" stroke="none" fill="#ffffff" fillOpacity={1} name="rentBand75_bottom" legendType="none" isAnimationActive={false} />}
 
             {/* Median lines */}
-            <Line
-              type="monotone"
-              dataKey="buyP50"
-              stroke="#2563eb"
-              strokeWidth={2.5}
-              dot={false}
-              name="buyP50"
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="rentP50"
-              stroke="#059669"
-              strokeWidth={2.5}
-              dot={false}
-              name="rentP50"
-              isAnimationActive={false}
-            />
+            {showBuy && <Line type="monotone" dataKey="buyP50" stroke="#2563eb" strokeWidth={2.5} dot={false} name="buyP50" isAnimationActive={false} />}
+            {showRent && <Line type="monotone" dataKey="rentP50" stroke="#059669" strokeWidth={2.5} dot={false} name="rentP50" isAnimationActive={false} />}
 
             {/* Breakeven reference line */}
             {medianBreakevenYear && (

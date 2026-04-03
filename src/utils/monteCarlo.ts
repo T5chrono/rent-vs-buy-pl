@@ -245,14 +245,8 @@ export function runMonteCarlo(params: SimParams, iterations = 1000): SimulationR
     .map(([year, count]) => ({ year: Number(year), count }))
     .sort((a, b) => a.year - b.year);
 
-  // Median breakeven year (among iterations where it occurs)
-  const breakevenYears = results
-    .filter(r => r.breakevenYear !== null)
-    .map(r => r.breakevenYear as number)
-    .sort((a, b) => a - b);
-  const medianBreakevenYear = breakevenYears.length > 0
-    ? breakevenYears[Math.floor(breakevenYears.length / 2)]
-    : null;
+  // Breakeven year = first year where median (p50) buy curve exceeds median (p50) rent curve
+  const medianBreakevenYear = yearlyData.find(d => d.buyP50 > d.rentP50)?.year ?? null;
 
   const lastIdx = horizon - 1;
   const buyFinalArr  = results.map(r => r.buyWealth[lastIdx]).sort((a, b) => a - b);
