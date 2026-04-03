@@ -46,7 +46,7 @@ export function BreakevenChart({ result }: Props) {
       </p>
       <div style={{ width: '100%', height: 256 }}>
         <ResponsiveContainer width="100%" height={256}>
-          <BarChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="year" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 11 }} />
@@ -57,7 +57,7 @@ export function BreakevenChart({ result }: Props) {
                 stroke="#f59e0b"
                 strokeWidth={2}
                 strokeDasharray="4 2"
-                label={{ value: 'Mediana', position: 'top', fontSize: 10, fill: '#b45309' }}
+                label={{ value: 'Mediana ▲', position: 'insideTopLeft', offset: 6, fontSize: 10, fill: '#b45309', fontWeight: 600 }}
               />
             )}
             <Bar dataKey="count" radius={[3, 3, 0, 0]}>

@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { SimulationResult } from '../types';
-import { formatPLNCompact, formatPLN } from '../utils/formatters';
+import { formatPLNAxis, formatPLNPrecise } from '../utils/formatters';
 
 interface Props {
   result: SimulationResult;
@@ -19,7 +19,7 @@ interface Props {
 }
 
 function yTickFormatter(value: number) {
-  return formatPLNCompact(value);
+  return formatPLNAxis(value);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,12 +32,12 @@ function CustomTooltip({ active, payload, label }: any) {
       <p className="font-semibold text-gray-800">Rok {label}</p>
       {buy !== undefined && (
         <p className="text-blue-700">
-          <span className="font-medium">Kupno (p50):</span> {formatPLN(buy)}
+          <span className="font-medium">Kupno (p50):</span> {formatPLNPrecise(buy)}
         </p>
       )}
       {rent !== undefined && (
         <p className="text-emerald-700">
-          <span className="font-medium">Najem (p50):</span> {formatPLN(rent)}
+          <span className="font-medium">Najem (p50):</span> {formatPLNPrecise(rent)}
         </p>
       )}
     </div>
@@ -57,7 +57,7 @@ export function WealthChart({ result, horizonYears }: Props) {
       </p>
       <div style={{ width: '100%', height: 384 }}>
         <ResponsiveContainer width="100%" height={384}>
-          <ComposedChart data={yearlyData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+          <ComposedChart data={yearlyData} margin={{ top: 28, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis
               dataKey="year"
@@ -82,7 +82,7 @@ export function WealthChart({ result, horizonYears }: Props) {
                 };
                 return labels[value] ?? value;
               }}
-              wrapperStyle={{ fontSize: 11 }}
+              wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
             />
 
             {/* BUY bands */}
@@ -197,10 +197,12 @@ export function WealthChart({ result, horizonYears }: Props) {
                 strokeWidth={2}
                 strokeDasharray="6 3"
                 label={{
-                  value: `Próg opłacalności: Rok ${medianBreakevenYear}`,
-                  position: 'top',
+                  value: `Próg: Rok ${medianBreakevenYear} ▲`,
+                  position: 'insideTopLeft',
+                  offset: 6,
                   fontSize: 11,
                   fill: '#b45309',
+                  fontWeight: 600,
                 }}
               />
             )}

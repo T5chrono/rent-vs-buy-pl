@@ -19,6 +19,26 @@ export function formatPLNCompact(value: number): string {
   return compactFormatter.format(value);
 }
 
+// Precise to nearest 1 PLN — used in tooltips and summary cards
+export function formatPLNPrecise(value: number): string {
+  return plnFormatter.format(Math.round(value));
+}
+
+// Y-axis label: compact in thousands, no currency symbol to save space
+export function formatPLNAxis(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    const tys = Math.round(abs / 1_000);
+    // e.g. 5 523 tys.
+    return `${sign}${new Intl.NumberFormat('pl-PL').format(tys)} tys.`;
+  }
+  if (abs >= 1_000) {
+    return `${sign}${Math.round(abs / 1_000)} tys.`;
+  }
+  return `${sign}${Math.round(abs)} zł`;
+}
+
 export function formatPct(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
 }

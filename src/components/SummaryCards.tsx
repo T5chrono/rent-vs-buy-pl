@@ -1,5 +1,5 @@
 import type { SimulationResult } from '../types';
-import { formatPLNCompact, formatYear } from '../utils/formatters';
+import { formatPLNPrecise, formatYear } from '../utils/formatters';
 
 interface Props {
   result: SimulationResult;
@@ -51,13 +51,13 @@ export function SummaryCards({ result, horizonYears }: Props) {
       />
       <Card
         title={`Kupno (p50) po ${horizonYears} l.`}
-        value={formatPLNCompact(buyFinalP50)}
+        value={formatPLNPrecise(buyFinalP50)}
         sub="Nieruchomość + portfel − kredyt (po Belce)"
         color={buyBetter ? 'green' : 'amber'}
       />
       <Card
         title={`Najem (p50) po ${horizonYears} l.`}
-        value={formatPLNCompact(rentFinalP50)}
+        value={formatPLNPrecise(rentFinalP50)}
         sub="Portfel inwestycyjny (po Belce)"
         color={!buyBetter ? 'green' : 'amber'}
       />
